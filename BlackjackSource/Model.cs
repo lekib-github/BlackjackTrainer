@@ -1,6 +1,8 @@
 ﻿namespace BlackjackSource;
 
+using System.Security.Cryptography;
 using static Console;
+using static DeckMethods;
 using static BasicStrategy.Action;
 using static Hand.States;
 
@@ -12,6 +14,11 @@ internal static class DeckMethods
         (8, 'H'), (8, 'D'), (8, 'S'), (8, 'C'), (9, 'H'), (9, 'D'), (9, 'S'), (9, 'C'), (10, 'H'), (10, 'D'), (10, 'S'), (10, 'C'),
         (11, 'H'), (11, 'D'), (11, 'S'), (11, 'C'), (12, 'H'), (12, 'D'), (12, 'S'), (12, 'C'), (13, 'H'), (13, 'D'), (13, 'S'), (13, 'C'),
         (14, 'H'), (14, 'D'), (14, 'S'), (14, 'C')
+    };
+
+    public static readonly string?[] Symbols =
+    {
+        null, null, "2", "3", "4", "5", "6", "7", "8",  "9", "10", "J", "Q", "K", "A"
     };
 
     // Fisher-Yates algorithm implementation for Shuffle from: https://stackoverflow.com/questions/108819/best-way-to-randomize-an-array-with-net
@@ -39,21 +46,25 @@ internal static class DeckMethods
 
         var shoe = new Queue<(byte Value, char Suit)>(decks);
         Shuffle(ref shoe);
+        var cut = RandomNumberGenerator.GetInt32(4 * deckNumber, 45 * deckNumber);
+        shoe = new Queue<(byte Value, char Suit)>(shoe.ToArray()[cut..]);
         return shoe;
     }
 }
 
+
+
 internal class Stats
 {
     // Session Win/Loss, Basic Strategy adherence %, Avg Bet, % loss of total bet
-    public readonly int BankrollStart;
-    public float BankrollCurr;
-    public int TotalBet;
-    public int HandsPlayed;
-    public int CorrectAct;
-    public int TotalAct;
+    public int BankrollStart { get; }
+    public float BankrollCurr { get; set; }
+    public int TotalBet { get; set; }
+    public int HandsPlayed { get; set; }
+    public int CorrectAct { get; set; }
+    public int TotalAct { get;  set; }
 
-    public readonly int ActiveHands;
+    public  int ActiveHands { get; }
 
     public Stats(int bankroll, int handNumber)
     {
@@ -69,11 +80,11 @@ internal class Hand
     {
         Hard, Soft, Pair, Blackjack
     }
-    public readonly List<(byte Value, char Suit)> Cards;
-    public int Total;
-    public int Bet;
-    public bool BJ;
-    public States State;
+    public List<(byte Value, char Suit)> Cards { get; }
+    public int Total { get; private set; }
+    public int Bet { get; private set; }
+    public bool BJ { get; private set; }
+    public States State { get; private set; }
     public int CardCount => Cards.Count;
 
     public Hand(int bet, ref Stats session)
@@ -165,6 +176,10 @@ internal class Hand
     // Method for Stand not implemented, action transference handled in a loop in main.
     public bool Hit(ref Queue<(byte Value, char Suit)> shoe)
     {
+        if (shoe.Count == 0)
+        {
+            shoe = ConstructShoe(8);
+        }
         var card = shoe.Dequeue();
         Cards.Add(card);
         RecalculateTotal();
@@ -344,12 +359,12 @@ internal static class BasicStrategy
         {
             Write("    ");
         }
-        Write($"Dealer showing: {dealer.Cards[0].Value} ");
+        Write($"Dealer showing: {Symbols[dealer.Cards[0].Value]} ");
         if (Turn.Count == 1)
         {
             for (var i = 1; i < dealer.CardCount; ++i)
             {
-                Write($"{dealer.Cards[i].Value} ");
+                Write($"{Symbols[dealer.Cards[i].Value]} ");
             }
         }
         WriteLine("\n\nYour Hand cards (Total State : Bet):");
@@ -363,7 +378,7 @@ internal static class BasicStrategy
 
             foreach (var card in hand.Cards)
             {
-                Write($"{card.Value} ");
+                Write($"{Symbols[card.Value]} ");
             }
 
             Write($"({hand.Total} {hand.State} : {hand.Bet})");
@@ -487,7 +502,7 @@ internal static class BasicStrategy
         WriteLine("Enter starting bankroll and number of hands to play");
         Session = new Stats(int.Parse(ReadLine()!), int.Parse(ReadLine()!));
         Clear();
-        Shoe = DeckMethods.ConstructShoe(8);
+        Shoe = ConstructShoe(8);
 
         while (Session.BankrollCurr > 0)
         {

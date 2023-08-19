@@ -218,12 +218,21 @@ internal class Hand
     }
 }
 
-internal static class BasicStrategy
+internal class BasicStrategy // most of this class needs to be culled, as development on View.cs continues..
 {
     private static Stats? Session;
     private static Queue<(byte, char)>? Shoe;
     private static List<Hand>? Hands;
     private static Queue<Hand>? Turn;
+
+    public float BankrollStart => Session!.BankrollStart;
+    public float BankrollCurr => Session!.BankrollCurr;
+    public int HandsPlayed => Session!.HandsPlayed;
+    public int ActiveHands => Session!.ActiveHands;
+    public int CorrectAct => Session!.CorrectAct;
+    public int TotalAct => Session!.TotalAct;
+    public int TotalBet => Session!.TotalBet;
+
     public enum Action
     {
         Hit,
@@ -350,6 +359,10 @@ internal static class BasicStrategy
         },
     };
 
+    public void SessionInit(int bankroll, int handNumber)
+    {
+        Session ??= new Stats(bankroll, handNumber);
+    }
     private static void Draw()
     {
         Clear();
@@ -399,7 +412,7 @@ internal static class BasicStrategy
         WriteLine($"Win/loss per hand: {net/Session.HandsPlayed}");
 
         Write("Place new bets? Yes/New (session): ");
-        if (ReadLine()!.ToUpper() != "YES") Main();
+        if (ReadLine()!.ToUpper() != "YES") Start();
     }
 
     private static void BetAndDeal()
@@ -496,7 +509,7 @@ internal static class BasicStrategy
                 return false;
         }
     }
-    private static void Main()
+    private static void Start()
     {
         Clear();
         WriteLine("Enter starting bankroll and number of hands to play");
